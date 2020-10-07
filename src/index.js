@@ -4,6 +4,7 @@ const models = require('./models');
 
 const express = require('express');
 const { ApolloServer } = require('apollo-server-express');
+const jwt = require('jsonwebtoken');
 const typeDefs = require('./schema');
 const resolvers = require('./resolvers');
 
@@ -15,12 +16,27 @@ const app = express();
 
 db.connect(DB_HOST);
 
+const getUser = token => {
+  if (token) {
+    try {
+      return jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      throw new Error('Session invalid');
+    }
+  }
+};
+
 // Apollo Server setup
 const server = new ApolloServer({
   typeDefs,
   resolvers,
-  context: () => {
-    return { models };
+  context: ({ req }) => {
+    const token = req.headers.authorization;
+    const user = getUser(token);
+
+    console.log(user);
+
+    return { models, user };
   }
 });
 
